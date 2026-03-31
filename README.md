@@ -1,6 +1,6 @@
 # PromptThin
 
-> **Save up to 70% on LLM API costs. Zero code changes.**
+> **Reduce LLM API costs through caching, compression, and smart routing. Zero code changes.**
 
 PromptThin is a transparent proxy that sits between your AI agents and LLM providers. Two environment variables and you're done — every API call gets four compounding savings routes applied automatically.
 
@@ -16,11 +16,17 @@ Your app ──→ PromptThin ──→ OpenAI / Anthropic / Gemini / Groq
 
 ## How much can I save?
 
-| Your usage | Without PromptThin | With PromptThin | Saving |
-|---|---|---|---|
-| 10K req/mo, GPT-4o | ~$150/mo | ~$45/mo | **70%** |
-| Agent with long context | ~$800/mo | ~$320/mo | **60%** |
-| RAG pipeline, repetitive queries | ~$200/mo | ~$20/mo | **90%** |
+Savings depend on your workload. The four routes compound — each one reduces what the next has to work with.
+
+- **High cache hit rate** (repeated or similar queries): up to 90%+ reduction
+- **Long context agents** (multi-turn, large prompts): 40–60% reduction from pruning + compression
+- **Mixed workloads** (some unique, some repeated): typically 20–40% reduction
+
+Check your actual savings anytime from the dashboard or API:
+
+```bash
+curl https://promptthin.tech/usage/summary -H "X-API-Key: ts_your_key"
+```
 
 ---
 
