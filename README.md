@@ -9,24 +9,7 @@ Your app ──→ PromptThin ──→ OpenAI / Anthropic / Gemini / Groq
 ```
 
 [![Website](https://img.shields.io/badge/website-promptthin.tech-brightgreen)](https://promptthin.tech)
-[![Free tier](https://img.shields.io/badge/free_tier-500_req%2Fmonth-blue)](https://promptthin.tech)
-[![7-day trial](https://img.shields.io/badge/trial-7_days_unlimited-orange)](https://promptthin.tech)
-
----
-
-## How much can I save?
-
-Savings depend on your workload. The four routes compound — each one reduces what the next has to work with.
-
-- **High cache hit rate** (repeated or similar queries): up to 90%+ reduction
-- **Long context agents** (multi-turn, large prompts): 40–60% reduction from pruning + compression
-- **Mixed workloads** (some unique, some repeated): typically 20–40% reduction
-
-Check your actual savings anytime from the dashboard or API:
-
-```bash
-curl https://promptthin.tech/usage/summary -H "X-API-Key: ts_your_key"
-```
+[![Free trial](https://img.shields.io/badge/trial-7_days_free-blue)](https://promptthin.tech)
 
 ---
 
@@ -39,13 +22,17 @@ curl https://promptthin.tech/usage/summary -H "X-API-Key: ts_your_key"
 | **Model Router** | Automatically routes simple tasks to cheaper models in <1ms | Up to 90% per request |
 | **Context Pruning** | Summarises long conversation history when it exceeds 8K tokens | Up to 60% on long threads |
 
-All four routes run on every request. You control which to enable or skip per-request.
+All four routes run on every request. You control which to skip per-request via headers.
 
 ---
 
 ## Get started in 2 minutes
 
-### Step 1 — Create a free account
+### Step 1 — Create an account
+
+Sign up at **[promptthin.tech](https://promptthin.tech)** — verify your email, then start your 7-day free trial (no charge for 7 days).
+
+Or via API:
 
 ```bash
 curl -X POST https://promptthin.tech/auth/register \
@@ -53,9 +40,8 @@ curl -X POST https://promptthin.tech/auth/register \
   -d '{"email": "you@example.com", "password": "yourpassword"}'
 ```
 
-Returns your API key (`ts_xxx`). Save it.
-
-Or sign up at **[promptthin.tech](https://promptthin.tech)** and get your key from the dashboard.
+**Password requirements:** 8+ characters, uppercase, lowercase, number, special character.
+Check your inbox for a verification email before making API calls.
 
 ### Step 2 — Register your LLM provider key
 
@@ -111,7 +97,6 @@ client = OpenAI(
     api_key="ts_your_key",
 )
 
-# Identical to regular OpenAI usage
 response = client.chat.completions.create(
     model="gpt-4o",
     messages=[{"role": "user", "content": "Hello!"}]
@@ -126,11 +111,6 @@ import OpenAI from "openai";
 const client = new OpenAI({
   baseURL: "https://promptthin.tech/v1",
   apiKey: "ts_your_key",
-});
-
-const response = await client.chat.completions.create({
-  model: "gpt-4o",
-  messages: [{ role: "user", content: "Hello!" }],
 });
 ```
 
@@ -156,7 +136,7 @@ const client = new Anthropic({
 });
 ```
 
-### LangChain — Python
+### LangChain
 
 ```python
 from langchain_openai import ChatOpenAI
@@ -168,18 +148,7 @@ llm = ChatOpenAI(
 )
 ```
 
-### LangChain — JavaScript
-
-```typescript
-import { ChatOpenAI } from "@langchain/openai";
-
-const llm = new ChatOpenAI({
-  configuration: { baseURL: "https://promptthin.tech/v1" },
-  apiKey: "ts_your_key",
-});
-```
-
-### AutoGen — Python
+### AutoGen
 
 ```python
 config_list = [{
@@ -187,17 +156,11 @@ config_list = [{
     "base_url": "https://promptthin.tech/v1",
     "api_key": "ts_your_key",
 }]
-
-assistant = AssistantAgent(
-    name="assistant",
-    llm_config={"config_list": config_list},
-)
 ```
 
-### CrewAI
+### CrewAI / any OpenAI-compatible framework
 
 ```bash
-# .env — CrewAI reads from environment automatically
 OPENAI_BASE_URL=https://promptthin.tech/v1
 OPENAI_API_KEY=ts_your_key
 ```
@@ -206,16 +169,10 @@ OPENAI_API_KEY=ts_your_key
 
 ```typescript
 import { createOpenAI } from "@ai-sdk/openai";
-import { generateText } from "ai";
 
 const openai = createOpenAI({
   baseURL: "https://promptthin.tech/v1",
   apiKey: "ts_your_key",
-});
-
-const { text } = await generateText({
-  model: openai("gpt-4o"),
-  prompt: "Hello!",
 });
 ```
 
@@ -226,11 +183,6 @@ import litellm
 
 litellm.api_base = "https://promptthin.tech/v1"
 litellm.api_key = "ts_your_key"
-
-response = litellm.completion(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Hello!"}],
-)
 ```
 
 ### Cursor / Continue.dev / Open WebUI
@@ -243,7 +195,7 @@ In settings, set:
 
 ## Supported models
 
-PromptThin infers the provider from the model name — no extra config needed:
+PromptThin infers the provider from the model name automatically:
 
 | Model prefix | Routes to |
 |---|---|
@@ -254,9 +206,40 @@ PromptThin infers the provider from the model name — no extra config needed:
 
 ---
 
-## MCP server
+## Preview savings before committing
 
-PromptThin exposes an MCP server for agents that support the Model Context Protocol (Claude Desktop, Claude Code, Cursor, Cline, Windsurf, Continue.dev).
+Use the `POST /predict-savings` endpoint to get a cost estimate before making a real LLM call — no tokens billed, no LLM call made:
+
+```bash
+curl -X POST https://promptthin.tech/predict-savings \
+  -H "X-API-Key: ts_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "provider": "openai",
+    "messages": [
+      {"role": "user", "content": "your long prompt here..."}
+    ]
+  }'
+```
+
+Response:
+
+```json
+{
+  "original_tokens": 4200,
+  "estimated_tokens_after_savings": 2100,
+  "estimated_cost_original": 0.0105,
+  "estimated_cost_after_savings": 0.0013,
+  "estimated_saving": 0.0092,
+  "saving_percent": 87.5,
+  "recommendation": "proceed"
+}
+```
+
+---
+
+## MCP server
 
 Add to `claude_desktop_config.json`:
 
@@ -273,29 +256,11 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-Available tools your agent can call:
-
-| Tool | What it does |
-|---|---|
-| `get_usage_summary` | Tokens saved, cache hit rate, cost saved |
-| `get_billing_status` | Plan, requests remaining this month |
-| `flush_cache` | Mark all cached responses as stale |
-| `get_recent_requests` | Last N proxied requests with details |
+Available tools: `get_usage_summary`, `get_billing_status`, `flush_cache`, `get_recent_requests`.
 
 ---
 
 ## Per-request controls
-
-Skip specific savings routes on individual requests by adding headers:
-
-```python
-# Skip cache for this request only
-client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "What's the latest news?"}],
-    extra_headers={"X-Cache-Control": "no-cache"},
-)
-```
 
 | Header | Value | Effect |
 |---|---|---|
@@ -306,48 +271,37 @@ client.chat.completions.create(
 
 ---
 
-## Check your savings
-
-```bash
-curl https://promptthin.tech/usage/summary \
-  -H "X-API-Key: ts_your_key"
-```
-
-Or open the **[live dashboard](https://promptthin.tech/dashboard)** — shows total tokens saved, tokens you would have used, tokens actually used, and cache hit rate.
-
----
-
 ## Pricing
 
-| Plan | Price | Requests/month |
+| Plan | Price | Requests |
 |---|---|---|
-| **Free** | $0 | 500 req + 7-day unlimited trial |
-| **Pro** | $4.99 first month, then $11.99/mo | 10,000 req |
-| **Enterprise** | Custom | 100,000+ req, SLA, dedicated support |
+| **No card** | Free | 20 requests to explore |
+| **Pro** | 7-day free trial · then $4.99 first month · then $11.99/mo | Unlimited |
+| **Enterprise** | Custom | Unlimited + SLA + dedicated support |
 
-[Sign up free →](https://promptthin.tech)
+[Start free trial →](https://promptthin.tech)
 
 ---
 
 ## Security
 
-- Provider keys are encrypted with **AES-256** before storage — never in logs or responses
-- All traffic is **HTTPS only**
-- Keys are stored in **GCP Secret Manager**, not in the application database
-- PromptThin never modifies response content — only compresses prompts and manages context
+- Provider keys encrypted with **AES-256** — never in logs or responses
+- **Email verification** required before making API calls
+- **Strong passwords** enforced (8+ chars, upper, lower, number, special character)
+- All traffic **HTTPS only**
+- Keys stored in **GCP Secret Manager**
 
 ---
 
 ## FAQ
 
 **Do I need to change my code?**
-No. Set two environment variables and everything works automatically.
+No. Set two environment variables.
 
 **Does PromptThin slow down my requests?**
-The semantic cache adds <2ms. Prompt compression and model routing add <1ms. Cache hits completely skip the LLM call, dramatically reducing latency.
+Cache hits completely skip the LLM call — dramatically lower latency. Cache misses add <2ms overhead.
 
-**What if I want to use my own provider key instead of registering it?**
-Pass it directly in the Authorization header alongside your PromptThin key:
+**What if I want to pass my provider key directly?**
 ```python
 client = OpenAI(
     base_url="https://promptthin.tech/v1",
@@ -355,13 +309,13 @@ client = OpenAI(
     default_headers={"Authorization": "Bearer sk-your-openai-key"},
 )
 ```
-PromptThin detects the provider key prefix and uses it directly.
+PromptThin detects the key prefix and uses it directly.
 
 **Can I use multiple providers?**
 Yes. Register keys for each provider. PromptThin routes to the right one based on the model name.
 
-**Is this open source?**
-The integration documentation and examples are public. The proxy server is proprietary.
+**What happens after the 7-day trial?**
+Your card is charged $4.99 for the first month, then $11.99/month. Cancel anytime from the dashboard — no charge if cancelled within 7 days.
 
 ---
 
