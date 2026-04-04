@@ -256,7 +256,28 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-Available tools: `get_usage_summary`, `get_billing_status`, `flush_cache`, `get_recent_requests`.
+Available tools:
+
+| Tool | What it does |
+|---|---|
+| `start_trial` | Start a 7-day free Pro trial — returns Stripe checkout URL |
+| `chat_completion` | Send a chat request through PromptThin — all savings applied automatically |
+| `predict_savings` | Estimate savings before the real call — free, no tokens billed |
+| `get_usage_summary` | Total tokens saved, cache hit rate, cost saved |
+| `get_billing_status` | Plan status and requests remaining |
+| `flush_cache` | Clear the semantic cache |
+| `get_recent_requests` | Recent proxied requests with details |
+
+**Recommended agent pattern:**
+```python
+# 1. Check savings estimate first (free)
+estimate = call_tool("predict_savings", model="gpt-4o", messages=messages)
+# → "87% saving — compression + routing to gpt-4o-mini"
+
+# 2. Send through PromptThin (savings applied automatically)
+response = call_tool("chat_completion", model="gpt-4o", messages=messages)
+# → Returns answer + "[PromptThin] Tokens: 420 in / 85 out"
+```
 
 ---
 
@@ -276,7 +297,7 @@ Available tools: `get_usage_summary`, `get_billing_status`, `flush_cache`, `get_
 | Plan | Price | Requests |
 |---|---|---|
 | **No card** | Free | 20 requests to explore |
-| **Pro** | 7-day free trial · then $4.99 first month · then $11.99/mo | Unlimited |
+| **Pro** | 7-day free trial · then $4.99 first month · then $11.99/mo | 10,000 req/month |
 | **Enterprise** | Custom | Unlimited + SLA + dedicated support |
 
 [Start free trial →](https://promptthin.tech)
