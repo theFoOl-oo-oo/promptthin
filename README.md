@@ -2,7 +2,7 @@
 
 > **Reduce LLM API costs through caching, compression, and smart routing. Zero code changes.**
 
-PromptThin is a transparent proxy that sits between your AI agents and LLM providers. Two environment variables and you're done — every API call gets four compounding savings routes applied automatically.
+PromptThin is a transparent proxy that sits between your AI agents and LLM providers. Two environment variables and you're done — every API call gets five compounding savings routes applied automatically.
 
 ```
 Your app ──→ PromptThin ──→ OpenAI / Anthropic / Gemini / Groq
@@ -13,7 +13,7 @@ Your app ──→ PromptThin ──→ OpenAI / Anthropic / Gemini / Groq
 
 ---
 
-## Four savings routes
+## Five savings routes
 
 | Route | What it does | Saving |
 |---|---|---|
@@ -21,8 +21,9 @@ Your app ──→ PromptThin ──→ OpenAI / Anthropic / Gemini / Groq
 | **Prompt Compression** | Compresses verbose prompts with LLMLingua 2 before sending | Up to 50% on input tokens |
 | **Model Router** | Automatically routes simple tasks to cheaper models in <1ms | Up to 90% per request |
 | **Context Pruning** | Summarises long conversation history when it exceeds 8K tokens | Up to 60% on long threads |
+| **Thinking Budget** | Caps reasoning tokens on thinking models (Claude, o-series, Gemini 2.5/3) based on task complexity | Up to 80% on thinking tokens |
 
-All four routes run on every request. You control which to skip per-request via headers.
+All five routes run on every request. You control which to skip per-request via headers.
 
 ---
 
@@ -241,41 +242,47 @@ Response:
 
 ## MCP server
 
+PromptThin supports both Streamable HTTP (recommended) and SSE transports.
+
 Add to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "promptthin": {
-      "url": "https://promptthin.tech/mcp",
-      "headers": {
-        "X-API-Key": "ts_your_key"
-      }
+      "command": "cmd",
+      "args": [
+        "/c", "npx", "mcp-remote@latest",
+        "https://promptthin.tech/mcp",
+        "--header", "X-API-Key: ts_your_key"
+      ]
     }
   }
 }
 ```
 
+On Mac/Linux, replace `"command": "cmd"` and remove `"/c"` — use `"command": "npx"` directly.
+
 Available tools:
 
 | Tool | What it does |
 |---|---|
-| `start_trial` | Start a 7-day free Pro trial — returns Stripe checkout URL |
-| `chat_completion` | Send a chat request through PromptThin — all savings applied automatically |
-| `predict_savings` | Estimate savings before the real call — free, no tokens billed |
-| `get_usage_summary` | Total tokens saved, cache hit rate, cost saved |
-| `get_billing_status` | Plan status and requests remaining |
-| `flush_cache` | Clear the semantic cache |
-| `get_recent_requests` | Recent proxied requests with details |
+| `billing.start_trial` | Start a 7-day free Pro trial — returns Stripe checkout URL |
+| `proxy.chat` | Send a chat request through PromptThin — all five savings routes applied |
+| `proxy.predict` | Estimate savings before the real call — free, no tokens billed |
+| `usage.summary` | Total tokens saved, cache hit rate, cost saved |
+| `billing.status` | Plan status and requests remaining |
+| `cache.flush` | Clear the semantic cache |
+| `usage.recent` | Recent proxied requests with details |
 
 **Recommended agent pattern:**
 ```python
 # 1. Check savings estimate first (free)
-estimate = call_tool("predict_savings", model="gpt-4o", messages=messages)
+estimate = call_tool("proxy.predict", model="gpt-4o", messages=messages)
 # → "87% saving — compression + routing to gpt-4o-mini"
 
 # 2. Send through PromptThin (savings applied automatically)
-response = call_tool("chat_completion", model="gpt-4o", messages=messages)
+response = call_tool("proxy.chat", model="gpt-4o", messages=messages)
 # → Returns answer + "[PromptThin] Tokens: 420 in / 85 out"
 ```
 
@@ -289,6 +296,7 @@ response = call_tool("chat_completion", model="gpt-4o", messages=messages)
 | `X-Prune-Control` | `no-prune` | Skip context pruning |
 | `X-Compress-Control` | `no-compress` | Skip prompt compression |
 | `X-Router-Control` | `no-route` | Skip model routing |
+| `X-Thinking-Control` | `no-cap` | Skip thinking budget caps (use full reasoning) |
 
 ---
 
