@@ -51,25 +51,25 @@ Check your inbox for a verification email before making API calls.
 curl -X POST https://promptthin.tech/keys/openai \
   -H "X-API-Key: ts_your_key" \
   -H "Content-Type: application/json" \
-  -d '{"key": "sk-your-openai-key"}'
+  -d '{"api_key": "sk-your-openai-key"}'
 
 # Anthropic
 curl -X POST https://promptthin.tech/keys/anthropic \
   -H "X-API-Key: ts_your_key" \
   -H "Content-Type: application/json" \
-  -d '{"key": "sk-ant-your-anthropic-key"}'
+  -d '{"api_key": "sk-ant-your-anthropic-key"}'
 
 # Gemini
 curl -X POST https://promptthin.tech/keys/gemini \
   -H "X-API-Key: ts_your_key" \
   -H "Content-Type: application/json" \
-  -d '{"key": "AIza-your-gemini-key"}'
+  -d '{"api_key": "AIza-your-gemini-key"}'
 
 # Groq
 curl -X POST https://promptthin.tech/keys/groq \
   -H "X-API-Key: ts_your_key" \
   -H "Content-Type: application/json" \
-  -d '{"key": "gsk_your-groq-key"}'
+  -d '{"api_key": "gsk_your-groq-key"}'
 ```
 
 Your provider keys are encrypted with AES-256 and never appear in logs or responses.
@@ -267,22 +267,22 @@ Available tools:
 
 | Tool | What it does |
 |---|---|
-| `billing.start_trial` | Start a 7-day free Pro trial — returns Stripe checkout URL |
-| `proxy.chat` | Send a chat request through PromptThin — all five savings routes applied |
-| `proxy.predict` | Estimate savings before the real call — free, no tokens billed |
-| `usage.summary` | Total tokens saved, cache hit rate, cost saved |
-| `billing.status` | Plan status and requests remaining |
-| `cache.flush` | Clear the semantic cache |
-| `usage.recent` | Recent proxied requests with details |
+| `billing_start_trial` | Start a 7-day free Pro trial — returns Stripe checkout URL |
+| `proxy_chat` | Send a chat request through PromptThin — all five savings routes applied |
+| `proxy_predict` | Estimate savings before the real call — free, no tokens billed |
+| `usage_summary` | Total tokens saved, cache hit rate, cost saved |
+| `billing_status` | Plan status and requests remaining |
+| `cache_flush` | Clear the semantic cache |
+| `usage_recent` | Recent proxied requests with details |
 
 **Recommended agent pattern:**
 ```python
 # 1. Check savings estimate first (free)
-estimate = call_tool("proxy.predict", model="gpt-4o", messages=messages)
+estimate = call_tool("proxy_predict", model="gpt-4o", messages=messages)
 # → "87% saving — compression + routing to gpt-4o-mini"
 
 # 2. Send through PromptThin (savings applied automatically)
-response = call_tool("proxy.chat", model="gpt-4o", messages=messages)
+response = call_tool("proxy_chat", model="gpt-4o", messages=messages)
 # → Returns answer + "[PromptThin] Tokens: 420 in / 85 out"
 ```
 
