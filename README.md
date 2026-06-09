@@ -275,6 +275,8 @@ Available tools:
 | `cache_flush` | Clear the semantic cache |
 | `usage_recent` | Recent proxied requests with details |
 
+> **What `proxy_chat` is (and isn't):** `proxy_chat` routes a single outbound LLM call through PromptThin from within an AI assistant's response — for example, when you ask Claude to "use GPT-4 to summarise this file." It does **not** proxy the main conversation between you and a managed chat interface like claude.ai or ChatGPT — those platforms control their own API calls internally and cannot be intercepted. PromptThin saves tokens where **you** control the API call: your own code, agents, or self-hosted chat UIs.
+
 **Recommended agent pattern:**
 ```python
 # 1. Check savings estimate first (free)
@@ -329,6 +331,9 @@ No. Set two environment variables.
 
 **Does PromptThin slow down my requests?**
 Cache hits completely skip the LLM call — dramatically lower latency. Cache misses add <2ms overhead.
+
+**Does PromptThin reduce my claude.ai / ChatGPT chat quota usage?**
+No. Managed chat interfaces like claude.ai and ChatGPT control their own API calls internally — PromptThin cannot intercept those. PromptThin works when *you* control the API call: your own code, AI agents, or self-hosted chat UIs (e.g. Open WebUI, LibreChat). If you're hitting quota limits in a managed chat app, the fix is to use a self-hosted UI that calls the API directly through PromptThin instead.
 
 **What if I want to pass my provider key directly?**
 ```python
