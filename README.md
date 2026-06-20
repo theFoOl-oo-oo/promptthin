@@ -13,6 +13,23 @@ Your app ──→ PromptThin ──→ OpenAI / Anthropic / Gemini / Groq
 
 ---
 
+## Where PromptThin works
+
+PromptThin saves tokens when **you control the API call** — your own code, AI agents, or a self-hosted chat UI. It does **not** intercept calls made by managed chat interfaces like claude.ai, ChatGPT, or similar products; those platforms call LLM APIs internally and cannot be proxied.
+
+| Scenario | PromptThin works? |
+|---|---|
+| Your app code calling OpenAI / Anthropic / Gemini / Groq | ✅ Yes |
+| AI agents (LangChain, AutoGen, CrewAI, etc.) | ✅ Yes |
+| Self-hosted chat UIs (Open WebUI, LibreChat, Cursor, Continue.dev) | ✅ Yes |
+| `proxy_chat` MCP tool called by Claude Desktop / Claude Code | ✅ Yes — for that specific outbound LLM call |
+| claude.ai chat interface | ❌ No — Anthropic controls that pipe |
+| ChatGPT / Gemini web apps | ❌ No — provider controls that pipe |
+
+> **Tip for heavy claude.ai users:** If you're hitting usage quota limits in the claude.ai chat, the fix is to use a self-hosted UI like [Open WebUI](https://openwebui.com) or [LibreChat](https://librechat.ai) pointed at the Anthropic API through PromptThin. You get the same chat experience with compression and caching reducing every turn's token cost.
+
+---
+
 ## Five savings routes
 
 | Route | What it does | Saving |
@@ -24,6 +41,8 @@ Your app ──→ PromptThin ──→ OpenAI / Anthropic / Gemini / Groq
 | **Thinking Budget** | Caps reasoning tokens on thinking models (Claude, o-series, Gemini 2.5/3) based on task complexity | Up to 80% on thinking tokens |
 
 All five routes run on every request. You control which to skip per-request via headers.
+
+The semantic cache only ever stores successful, well-formed answers — see [Cache correctness](#cache-correctness) below.
 
 ---
 
@@ -294,11 +313,23 @@ response = call_tool("proxy_chat", model="gpt-4o", messages=messages)
 
 | Header | Value | Effect |
 |---|---|---|
-| `X-Cache-Control` | `no-cache` | Skip cache lookup and storage |
+| `X-Cache-Control` | `no-cache` | Skip both cache lookup **and** cache storage for this request — the response also won't be written to the cache for future requests |
 | `X-Prune-Control` | `no-prune` | Skip context pruning |
 | `X-Compress-Control` | `no-compress` | Skip prompt compression |
 | `X-Router-Control` | `no-route` | Skip model routing |
 | `X-Thinking-Control` | `no-cap` | Skip thinking budget caps (use full reasoning) |
+
+---
+
+## Cache correctness
+
+The semantic cache is only ever populated with responses that PromptThin can verify are well-formed. Before any response is written to the cache, it must pass all of the following checks:
+
+- **No transport or provider error** — the upstream call must return HTTP 200. Timeouts, gateway errors, and provider-side error payloads are never cached.
+- **Non-empty, substantive content** — responses with empty or near-empty text (e.g. a thinking model that returned nothing because its reasoning budget consumed the entire output) are rejected.
+- **No bad finish reason** — provider-specific signals that the response was cut short or blocked are checked: OpenAI/Groq content-filter stops, Gemini `SAFETY` / `RECITATION` / `OTHER` / `BLOCKLIST` finish reasons, and Anthropic `stop_reason == "error"` all skip the cache.
+
+These checks catch **errors and malformed responses**, not factual correctness — PromptThin has no way to verify whether a fluent, well-formed answer is actually *right*. If you're working with prompts where you don't want a possibly-imperfect answer cached for future similar requests by anyone, send `X-Cache-Control: no-cache` on that request. It skips both the cache read and the cache write, so that response is never reused.
 
 ---
 
