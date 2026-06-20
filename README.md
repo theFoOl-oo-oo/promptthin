@@ -42,7 +42,7 @@ PromptThin saves tokens when **you control the API call** — your own code, AI 
 
 All five routes run on every request. You control which to skip per-request via headers.
 
-The semantic cache only ever stores successful, well-formed answers — see [Cache correctness](#cache-correctness) below.
+The semantic cache only ever stores successful, well-formed answers — see [Cache correctness](#cache-correctness) below. Need part of a prompt to survive compression untouched? See [Protecting parts of a prompt from compression](#protecting-parts-of-a-prompt-from-compression).
 
 ---
 
@@ -318,6 +318,30 @@ response = call_tool("proxy_chat", model="gpt-4o", messages=messages)
 | `X-Compress-Control` | `no-compress` | Skip prompt compression |
 | `X-Router-Control` | `no-route` | Skip model routing |
 | `X-Thinking-Control` | `no-cap` | Skip thinking budget caps (use full reasoning) |
+
+---
+
+## Protecting parts of a prompt from compression
+
+Prompt compression (Route B) compresses the entire text of your last user message. If a part of that message must survive byte-for-byte — JSON you're going to parse, code, an exact template, anything format-sensitive — wrap it in markers instead of disabling compression for the whole message:
+
+```
+Please summarize this:
+<<<no-compress>>>
+{"id": 123, "exact": "json"}
+<<<end-no-compress>>>
+```
+
+How it works under the hood:
+
+1. Before compression runs, each `<<<no-compress>>>...<<<end-no-compress>>>` block is extracted and replaced with a unique placeholder token.
+2. LLMLingua-2 compresses the remaining text, with the placeholder tokens hinted as force-preserved.
+3. After compression, PromptThin verifies every placeholder token survived intact. If even one was split, stripped, or altered by the tokenizer, the **entire compression result for that message is discarded** and the original uncompressed message is sent instead — this guarantees the protected content is never silently corrupted, at the cost of losing compression savings on that one message.
+4. If the verification passes, the placeholders are replaced back with the original protected text and the markers are removed from the final message.
+
+Malformed markers (e.g. unmatched start/end tags) are treated as plain text — the message compresses normally without raising an error.
+
+This is a finer-grained alternative to `X-Compress-Control: no-compress`, which disables compression for the whole request rather than just a portion of one message.
 
 ---
 
