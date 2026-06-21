@@ -105,6 +105,61 @@ Done. Every LLM call now routes through PromptThin and savings start immediately
 
 ---
 
+## Authentication
+
+PromptThin accepts your PromptThin account key (`ts_...`) two ways:
+
+- **`X-API-Key` header** — the dedicated header, works with any HTTP client
+- **`Authorization: Bearer ts_...`** — for SDKs (like the OpenAI client) that only expose a single `api_key` field and always send it via `Authorization`
+
+Both resolve to the same account; use whichever is more convenient for your client.
+
+### Using the X-API-Key header
+
+```bash
+curl -X POST https://promptthin.tech/v1/chat/completions \
+  -H "X-API-Key: ts_YOUR_API_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemini-2.5-flash",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 300
+  }'
+```
+
+`model` can be any supported model name (`gpt-*`, `claude-*`, `gemini-*`, `llama-*`/`mixtral-*`/`gemma-*`) — PromptThin infers the provider and translates the request/response shape automatically, so the same OpenAI-style call works across all four providers.
+
+### With the Python OpenAI client
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://promptthin.tech/v1",
+    api_key="ts_your_key",   # sent as Authorization: Bearer ts_your_key
+)
+
+response = client.chat.completions.create(
+    model="gemini-2.5-flash",
+    messages=[{"role": "user", "content": "Hello"}],
+    max_tokens=300,
+)
+```
+
+This is the same pattern used throughout this README's integration examples — no `default_headers` needed. If you'd rather use the dedicated header instead, that also works:
+
+```python
+client = OpenAI(
+    api_key="dummy",  # required by the SDK but unused when X-API-Key is set
+    base_url="https://promptthin.tech/v1",
+    default_headers={"X-API-Key": "ts_YOUR_API_KEY_HERE"},
+)
+```
+
+**Note on `Authorization`:** this header serves a second purpose beyond carrying your `ts_` key — it's also how you pass a *provider* key directly in pass-through mode (see `What if I want to pass my provider key directly?` in the FAQ below). PromptThin distinguishes the two by prefix: `ts_` is treated as your account key, while `sk-`, `sk-ant-`, `AIza`, and `gsk_` are treated as provider keys and used directly for that request.
+
+---
+
 ## Integration examples
 
 ### OpenAI SDK — Python
