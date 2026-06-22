@@ -42,7 +42,7 @@ PromptThin saves tokens when **you control the API call** — your own code, AI 
 
 All five routes run on every request. You control which to skip per-request via headers.
 
-The semantic cache only ever stores successful, well-formed answers — see [Cache correctness](#cache-correctness) below. Need part of a prompt to survive compression untouched? See [Protecting parts of a prompt from compression](#protecting-parts-of-a-prompt-from-compression).
+The semantic cache only ever stores successful, well-formed answers — see [Cache correctness](#cache-correctness) below — and skips multimodal (image) requests by default — see [Vision and image requests](#vision-and-image-requests). Need part of a prompt to survive compression untouched? See [Protecting parts of a prompt from compression](#protecting-parts-of-a-prompt-from-compression).
 
 ---
 
@@ -369,10 +369,33 @@ response = call_tool("proxy_chat", model="gpt-4o", messages=messages)
 | Header | Value | Effect |
 |---|---|---|
 | `X-Cache-Control` | `no-cache` | Skip both cache lookup **and** cache storage for this request — the response also won't be written to the cache for future requests |
+| `X-Cache-Control` | `force-image-cache` | Allow caching for this one request even though it contains image content (see [Vision and image requests](#vision-and-image-requests)) |
 | `X-Prune-Control` | `no-prune` | Skip context pruning |
 | `X-Compress-Control` | `no-compress` | Skip prompt compression |
 | `X-Router-Control` | `no-route` | Skip model routing |
 | `X-Thinking-Control` | `no-cap` | Skip thinking budget caps (use full reasoning) |
+
+---
+
+## Vision and image requests
+
+The semantic cache fingerprints a request from the **text** portion of its messages only — image content blocks are never embedded. This means two requests with identical text but different images would otherwise hash to the same cache key and risk returning a cached answer about the wrong image.
+
+To prevent this, PromptThin **skips the semantic cache by default for any request containing image content** — covering OpenAI/Anthropic-style image blocks (`image_url`, `image`, `input_image`) and Gemini-style inline/file image parts, in any message of the conversation, not just the latest one.
+
+All other savings routes (compression, pruning, routing, thinking budget) are unaffected and still apply normally to vision requests.
+
+If you have a workload where this is safe — for example, the image is decorative and the answer is fully determined by the text — you can opt back in for a single request:
+
+```bash
+curl -X POST https://promptthin.tech/v1/chat/completions \
+  -H "X-API-Key: ts_your_key" \
+  -H "X-Cache-Control: force-image-cache" \
+  -H "Content-Type: application/json" \
+  -d '{ ... }'
+```
+
+This is a per-request override, not a setting — each request containing images still needs `force-image-cache` explicitly to be cached.
 
 ---
 
@@ -409,6 +432,8 @@ The semantic cache is only ever populated with responses that PromptThin can ver
 - **No bad finish reason** — provider-specific signals that the response was cut short or blocked are checked: OpenAI/Groq content-filter stops, Gemini `SAFETY` / `RECITATION` / `OTHER` / `BLOCKLIST` finish reasons, and Anthropic `stop_reason == "error"` all skip the cache.
 
 These checks catch **errors and malformed responses**, not factual correctness — PromptThin has no way to verify whether a fluent, well-formed answer is actually *right*. If you're working with prompts where you don't want a possibly-imperfect answer cached for future similar requests by anyone, send `X-Cache-Control: no-cache` on that request. It skips both the cache read and the cache write, so that response is never reused.
+
+For multimodal requests specifically, see [Vision and image requests](#vision-and-image-requests) above — those are skipped by default regardless of response quality, because the risk there is a cache-key collision, not a bad response.
 
 ---
 
